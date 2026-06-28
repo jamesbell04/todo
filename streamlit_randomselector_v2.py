@@ -81,9 +81,8 @@ if "selected_meals" in st.session_state:
     if len(st.session_state["keep_flags"]) != len(selected_meals):
         st.session_state["keep_flags"] = [False] * len(selected_meals)
 
+    
     # ---------------- Display meals ----------------
-
-        # ---------------- Display meals ----------------
 
     st.header("Selected Meals")
 
@@ -105,16 +104,13 @@ if "selected_meals" in st.session_state:
 
         with col:
 
-            # Lock / unlock button
-            icon = "🔒" if st.session_state["keep_flags"][i] else "🔓"
+            locked = st.checkbox(
+                "Keep",
+                value=st.session_state["keep_flags"][i],
+                key=f"keep_{i}"
+            )
 
-            if st.button(
-                icon,
-                key=f"lock_button_{i}",
-                help="Lock / unlock this meal"
-            ):
-                st.session_state["keep_flags"][i] = not st.session_state["keep_flags"][i]
-                st.rerun()
+            st.session_state["keep_flags"][i] = locked
 
             st.markdown(f"### **{meal.get('meal', 'Unknown meal')}**")
             st.markdown(f"**Class:** {meal.get('class', '')}")
@@ -128,48 +124,47 @@ if "selected_meals" in st.session_state:
                 st.markdown(f"• {ingredient}")
 
     # ---------------- Replace unlocked meals ----------------
+    # ---------------- Replace unkept meals ----------------
 
+    if st.button("🔁 Replace Unkept Meals"):
 
-    if st.button("🔁 Replace Unlocked Meals"):
+        new_selected_meals = []
 
-        kept_meals = []
-        new_keep_flags = []
+        kept_names = {
+            meal.get("meal")
+            for meal, keep in zip(selected_meals, st.session_state["keep_flags"])
+            if keep
+        }
 
-        # Keep locked meals
-        for meal, locked in zip(selected_meals, st.session_state["keep_flags"]):
-            if locked:
-                kept_meals.append(meal)
-                new_keep_flags.append(True)
+        current_names = {meal.get("meal") for meal in selected_meals}
 
-        num_needed = len(selected_meals) - len(kept_meals)
-
-        # Meals that are already locked
-        kept_names = {meal["meal"] for meal in kept_meals}
-
-        # Meals currently displayed
-        current_names = {meal["meal"] for meal in selected_meals}
-
-        # Prefer meals not currently shown
         available_meals = [
             meal for meal in clean_rows
-            if meal["meal"] not in current_names
+            if meal.get("meal") not in current_names
         ]
 
-        # If there aren't enough, allow any meal except locked ones
-        if len(available_meals) < num_needed:
-            available_meals = [
-                meal for meal in clean_rows
-                if meal["meal"] not in kept_names
-            ]
+        for meal, keep in zip(selected_meals, st.session_state["keep_flags"]):
 
-        new_meals = random.sample(available_meals, num_needed)
+            if keep:
+                new_selected_meals.append(meal)
 
-        st.session_state["selected_meals"] = kept_meals + new_meals
+            else:
+                if not available_meals:
+                    available_meals = [
+                        meal for meal in clean_rows
+                        if meal.get("meal") not in kept_names
+                    ]
 
-        # Locked meals stay locked, new meals start unlocked
-        st.session_state["keep_flags"] = (
-            new_keep_flags + [False] * num_needed
-        )
+                new_meal = random.choice(available_meals)
+                available_meals.remove(new_meal)
+                new_selected_meals.append(new_meal)
+
+        st.session_state["selected_meals"] = new_selected_meals
+
+        # Kept meals stay checked, new ones start unchecked
+        st.session_state["keep_flags"] = [
+            keep for keep in st.session_state["keep_flags"]
+        ]
 
         st.rerun()
 
@@ -314,14 +309,14 @@ h2 {{
 }}
 
 input[type="checkbox"] {{
-    width: 36px;
-    height: 36px;
+    width: 28px;
+    height: 28px;
     flex-shrink: 0;
 }}
 
 span {{
     flex: 1;
-    font-size: 28px;
+    font-size: 21px;
     word-break: break-word;
 }}
 
