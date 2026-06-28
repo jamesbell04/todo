@@ -190,7 +190,7 @@ body {{
     max-width: 900px;
     margin: auto;
     padding: 20px;
-    font-size: 30px;
+    font-size: 28px;
     line-height: 1.6;
     background: #fafafa;
 }}
