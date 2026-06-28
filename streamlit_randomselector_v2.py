@@ -2,6 +2,10 @@ import random
 import gspread
 import streamlit as st
 from google.oauth2.service_account import Credentials
+from collections import Counter
+from datetime import datetime
+from pathlib import Path
+import html
 
 # ---------------- Settings ----------------
 
@@ -133,12 +137,106 @@ if "selected_meals" in st.session_state:
 
     st.header("Shopping List")
 
-    shopping = sorted(set(all_ingredients))
+    ingredient_counts = Counter(all_ingredients)
 
-    shopping_text = "\n".join(shopping)
+    shopping_lines = []
+
+    for ingredient, count in sorted(ingredient_counts.items()):
+        if count > 1:
+            shopping_lines.append(f"{ingredient} ({count})")
+        else:
+            shopping_lines.append(ingredient)
+
+    shopping_text = "\n".join(shopping_lines)
 
     st.text_area(
         "Copy/Paste",
         shopping_text,
-        height=250,
+        height=200,
+    )
+
+    # ---------------- Download HTML Shopping List ----------------
+
+    now = datetime.now()
+    timestamp_display = now.strftime("%Y-%m-%d %H:%M")
+    timestamp_file = now.strftime("%Y-%m-%d_%H-%M")
+
+    filename = f"shopping_list_{timestamp_file}.html"
+
+    html_items = ""
+
+    for item in shopping_lines:
+        safe_item = html.escape(item)
+        html_items += f"""
+        <label class="item">
+            <input type="checkbox">
+            <span>{safe_item}</span>
+        </label>
+        """
+
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+    <meta charset="UTF-8">
+    <title>Shopping List</title>
+
+    <style>
+
+    body {{
+        font-family: Arial;
+        max-width:700px;
+        margin:auto;
+        padding:20px;
+        font-size:22px;
+    }}
+
+    h1 {{
+        font-size:34px;
+    }}
+
+    .date {{
+        color:#666;
+        margin-bottom:25px;
+    }}
+
+    .item {{
+        display:block;
+        padding:10px 0;
+    }}
+
+    input[type=checkbox] {{
+        width:24px;
+        height:24px;
+        margin-right:12px;
+    }}
+
+    input[type=checkbox]:checked + span {{
+        text-decoration:line-through;
+        color:gray;
+    }}
+
+    </style>
+
+    </head>
+
+    <body>
+
+    <h1>Shopping List</h1>
+
+    <div class="date">
+    Created: {timestamp_display}
+    </div>
+
+    {html_items}
+
+    </body>
+    </html>
+    """
+
+    st.download_button(
+        "🛒 Download Interactive Shopping List",
+        data=html_content,
+        file_name=filename,
+        mime="text/html",
     )
