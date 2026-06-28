@@ -67,10 +67,12 @@ if "selected_meal" in st.session_state:
 
     ingredients = []
 
-    for column, value in meal.items():
-        if column.startswith("ingredient"):
-            if str(value).strip() != "":
-                ingredients.append(value)
+    for i in range(1, 11):
+        key = f"i{i}"
+        value = meal.get(key, "")
+
+        if str(value).strip() != "":
+            ingredients.append(value)
 
     if len(ingredients) == 0:
         st.warning("No ingredients found for this meal.")
