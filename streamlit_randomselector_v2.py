@@ -75,10 +75,15 @@ if "selected_meals" in st.session_state:
     if "keep_flags" not in st.session_state:
         st.session_state["keep_flags"] = [False] * len(selected_meals)
 
+    while len(st.session_state["keep_flags"]) < len(selected_meals):
+        st.session_state["keep_flags"].append(False)
+
     if len(st.session_state["keep_flags"]) != len(selected_meals):
         st.session_state["keep_flags"] = [False] * len(selected_meals)
 
     # ---------------- Display meals ----------------
+
+        # ---------------- Display meals ----------------
 
     st.header("Selected Meals")
 
@@ -99,14 +104,17 @@ if "selected_meals" in st.session_state:
                 all_ingredients.append(ingredient)
 
         with col:
-            locked = st.checkbox(
-                "🔒",
-                value=st.session_state["keep_flags"][i],
-                key=f"lock_{i}",
-                help="Lock this meal so it is not replaced"
-            )
 
-            st.session_state["keep_flags"][i] = locked
+            # Lock / unlock button
+            icon = "🔒" if st.session_state["keep_flags"][i] else "🔓"
+
+            if st.button(
+                icon,
+                key=f"lock_button_{i}",
+                help="Lock / unlock this meal"
+            ):
+                st.session_state["keep_flags"][i] = not st.session_state["keep_flags"][i]
+                st.rerun()
 
             st.markdown(f"### **{meal.get('meal', 'Unknown meal')}**")
             st.markdown(f"**Class:** {meal.get('class', '')}")
@@ -121,37 +129,47 @@ if "selected_meals" in st.session_state:
 
     # ---------------- Replace unlocked meals ----------------
 
+
     if st.button("🔁 Replace Unlocked Meals"):
 
         kept_meals = []
         new_keep_flags = []
 
-        for meal, keep in zip(selected_meals, st.session_state["keep_flags"]):
-            if keep:
+        # Keep locked meals
+        for meal, locked in zip(selected_meals, st.session_state["keep_flags"]):
+            if locked:
                 kept_meals.append(meal)
                 new_keep_flags.append(True)
 
         num_needed = len(selected_meals) - len(kept_meals)
 
-        kept_names = {meal.get("meal") for meal in kept_meals}
-        current_names = {meal.get("meal") for meal in selected_meals}
+        # Meals that are already locked
+        kept_names = {meal["meal"] for meal in kept_meals}
 
+        # Meals currently displayed
+        current_names = {meal["meal"] for meal in selected_meals}
+
+        # Prefer meals not currently shown
         available_meals = [
             meal for meal in clean_rows
-            if meal.get("meal") not in kept_names
-            and meal.get("meal") not in current_names
+            if meal["meal"] not in current_names
         ]
 
+        # If there aren't enough, allow any meal except locked ones
         if len(available_meals) < num_needed:
             available_meals = [
                 meal for meal in clean_rows
-                if meal.get("meal") not in kept_names
+                if meal["meal"] not in kept_names
             ]
 
         new_meals = random.sample(available_meals, num_needed)
 
         st.session_state["selected_meals"] = kept_meals + new_meals
-        st.session_state["keep_flags"] = new_keep_flags + [False] * num_needed
+
+        # Locked meals stay locked, new meals start unlocked
+        st.session_state["keep_flags"] = (
+            new_keep_flags + [False] * num_needed
+        )
 
         st.rerun()
 
@@ -252,18 +270,18 @@ body {{
     max-width: 900px;
     margin: auto;
     padding: 16px;
-    font-size: 28px;
+    font-size: 24px;
     line-height: 1.45;
     background: #fafafa;
 }}
 
 h1 {{
-    font-size: 42px;
+    font-size: 36px;
     margin: 0 0 8px 0;
 }}
 
 h2 {{
-    font-size: 28px;
+    font-size: 26px;
     margin-top: 24px;
     margin-bottom: 8px;
 }}
