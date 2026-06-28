@@ -44,38 +44,101 @@ for row in rows:
 
 # ---------------- Streamlit App ----------------
 
+import pandas as pd
+
 st.title("🍽️ Random Meal Picker")
 
+num_meals = st.number_input(
+    "Number of meals",
+    min_value=1,
+    max_value=min(10, len(clean_rows)),
+    value=3,
+)
 
-if st.button("🎲 Pick Random Meal"):
-    st.session_state["selected_meal"] = random.choice(clean_rows)
+if st.button("🎲 Generate Meals"):
+    st.session_state["selected_meals"] = random.sample(clean_rows, num_meals)
 
-if "selected_meal" in st.session_state:
+if "selected_meals" in st.session_state:
 
-    meal = st.session_state["selected_meal"]
+    selected_meals = st.session_state["selected_meals"]
 
-    meal_name = meal.get("meal", "No meal name found")
-    meal_class = meal.get("class", "")
-    meal_source = meal.get("source", "")
+    table = {}
+    all_ingredients = []
 
-    st.header(meal_name)
+    # ---------------- Create table ----------------
 
-    st.write(f"**Class:** {meal_class}")
-    st.write(f"**Source:** {meal_source}")
+    for meal in selected_meals:
 
-    st.subheader("Ingredients")
+        ingredients = []
 
-    ingredients = []
+        for i in range(1, 11):
 
-    for i in range(1, 11):
-        key = f"i{i}"
-        value = meal.get(key, "")
+            ingredient = meal.get(f"i{i}", "")
 
-        if str(value).strip() != "":
-            ingredients.append(value)
+            if str(ingredient).strip():
 
-    if len(ingredients) == 0:
-        st.warning("No ingredients found for this meal.")
-    else:
-        for ingredient in ingredients:
-            st.write(f"• {ingredient}")
+                ingredient = str(ingredient).strip()
+
+                ingredients.append(ingredient)
+                all_ingredients.append(ingredient)
+
+        table[meal["meal"]] = [
+            meal.get("class", ""),
+            meal.get("source", ""),
+            "\n".join(ingredients)
+        ]
+
+    df = pd.DataFrame(
+        table,
+        index=[
+            "Class",
+            "Source",
+            "Ingredients"
+        ]
+    )
+
+    st.header("Selected Meals")
+
+    cols = st.columns(len(selected_meals))
+
+    all_ingredients = []
+
+    for col, meal in zip(cols, selected_meals):
+
+        ingredients = []
+
+        for i in range(1, 11):
+            ingredient = meal.get(f"i{i}", "")
+
+            if str(ingredient).strip():
+                ingredient = str(ingredient).strip()
+                ingredients.append(ingredient)
+                all_ingredients.append(ingredient)
+
+        with col:
+
+            st.markdown(f"### **{meal['meal']}**")
+
+            st.markdown(f"**Class:** {meal.get('class','')}")
+
+            if meal.get("source",""):
+                st.markdown(f"**Source:** {meal['source']}")
+
+            st.markdown("**Ingredients**")
+
+            for ingredient in ingredients:
+                st.markdown(f"• **{ingredient}**")
+
+    # ---------------- Shopping list ----------------
+
+    st.header("Shopping List")
+
+    shopping = sorted(set(all_ingredients))
+
+    shopping_text = "\n".join(shopping)
+
+    st.text_area(
+        "Copy/Paste",
+        shopping_text,
+        height=250,
+    )
