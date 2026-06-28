@@ -157,6 +157,8 @@ if "selected_meals" in st.session_state:
 
     # ---------------- Shopping list ----------------
 
+     
+
     st.header("Shopping List")
 
     ingredient_counts = Counter(all_ingredients)
@@ -169,6 +171,38 @@ if "selected_meals" in st.session_state:
         else:
             shopping_lines.append(ingredient)
 
+    # ---------------- Add manual shopping item ----------------
+
+    if "manual_items" not in st.session_state:
+        st.session_state["manual_items"] = []
+
+    st.subheader("Add extra item")
+
+    add_col1, add_col2 = st.columns([4, 1])
+
+    with add_col1:
+        extra_item = st.text_input(
+            "Extra item",
+            label_visibility="collapsed",
+            placeholder="e.g. Milk",
+            key="extra_item_input",
+        )
+
+    with add_col2:
+        add_clicked = st.button("➕ Add")
+
+    if add_clicked:
+        extra_item = extra_item.strip()
+
+        if extra_item:
+            st.session_state["manual_items"].append(extra_item)
+            st.rerun()
+
+    for item in st.session_state["manual_items"]:
+        shopping_lines.append(item)
+
+    shopping_lines = sorted(shopping_lines)
+
     shopping_text = "\n".join(shopping_lines)
 
     st.text_area(
@@ -176,6 +210,7 @@ if "selected_meals" in st.session_state:
         shopping_text,
         height=200,
     )
+
     # ---------------- Download HTML Shopping List ----------------
 
     now = datetime.now()
@@ -183,6 +218,12 @@ if "selected_meals" in st.session_state:
     timestamp_file = now.strftime("%Y-%m-%d_%H-%M")
 
     filename = f"shopping_list_{timestamp_file}.html"
+
+    meal_list_html = ""
+
+    for meal in selected_meals:
+        safe_meal_name = html.escape(meal.get("meal", "Unknown meal"))
+        meal_list_html += f"<li><strong>{safe_meal_name}</strong></li>"
 
     html_items = ""
 
@@ -210,43 +251,59 @@ body {{
     font-family: Arial, sans-serif;
     max-width: 900px;
     margin: auto;
-    padding: 20px;
-    font-size: 30px;
-    line-height: 1.6;
+    padding: 16px;
+    font-size: 28px;
+    line-height: 1.45;
     background: #fafafa;
 }}
 
 h1 {{
-    font-size: 54px;
-    margin: 0 0 10px 0;
+    font-size: 42px;
+    margin: 0 0 8px 0;
+}}
+
+h2 {{
+    font-size: 28px;
+    margin-top: 24px;
+    margin-bottom: 8px;
 }}
 
 .date {{
     color: #666;
-    font-size: 24px;
-    margin-bottom: 25px;
+    font-size: 20px;
+    margin-bottom: 20px;
+}}
+
+.meals {{
+    font-size: 22px;
+    line-height: 1.4;
+    margin-bottom: 20px;
+}}
+
+.meals li {{
+    margin-bottom: 6px;
 }}
 
 .item {{
     display: flex;
     align-items: center;
-    gap: 20px;
-    padding: 20px;
-    margin-bottom: 10px;
+    gap: 16px;
+    padding: 16px;
+    margin-bottom: 8px;
     background: white;
-    border-radius: 12px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.10);
 }}
 
 input[type="checkbox"] {{
-    width: 46px;
-    height: 46px;
+    width: 36px;
+    height: 36px;
     flex-shrink: 0;
 }}
 
 span {{
     flex: 1;
-    font-size: 36px;
+    font-size: 28px;
     word-break: break-word;
 }}
 
@@ -268,6 +325,13 @@ input[type="checkbox"]:checked + span {{
 <div class="date">
 Created: {timestamp_display}
 </div>
+
+<h2>Meals</h2>
+<ul class="meals">
+{meal_list_html}
+</ul>
+
+<h2>Ingredients</h2>
 
 {html_items}
 
