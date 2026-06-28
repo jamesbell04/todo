@@ -6,6 +6,8 @@ from collections import Counter
 from datetime import datetime
 from pathlib import Path
 import html
+import random
+from collections import Counter
 
 # ---------------- Settings ----------------
 
@@ -49,8 +51,7 @@ for row in rows:
 # ---------------- Streamlit App ----------------
 
 import pandas as pd
-
-st.title("🍽️ Random Meal Picker")
+st.title("🍽️ What to Eat?")
 
 num_meals = st.number_input(
     "Number of meals",
@@ -59,47 +60,25 @@ num_meals = st.number_input(
     value=3,
 )
 
-if st.button("🎲 Generate Meals"):
+# ---------------- Generate new full set ----------------
+
+if st.button("🎲 Generate New Meals"):
     st.session_state["selected_meals"] = random.sample(clean_rows, num_meals)
+    st.session_state["keep_flags"] = [False] * num_meals
+    st.rerun()
 
 if "selected_meals" in st.session_state:
 
     selected_meals = st.session_state["selected_meals"]
 
-    table = {}
-    all_ingredients = []
+    # Ensure keep_flags exists and has correct length
+    if "keep_flags" not in st.session_state:
+        st.session_state["keep_flags"] = [False] * len(selected_meals)
 
-    # ---------------- Create table ----------------
+    if len(st.session_state["keep_flags"]) != len(selected_meals):
+        st.session_state["keep_flags"] = [False] * len(selected_meals)
 
-    for meal in selected_meals:
-
-        ingredients = []
-
-        for i in range(1, 11):
-
-            ingredient = meal.get(f"i{i}", "")
-
-            if str(ingredient).strip():
-
-                ingredient = str(ingredient).strip()
-
-                ingredients.append(ingredient)
-                all_ingredients.append(ingredient)
-
-        table[meal["meal"]] = [
-            meal.get("class", ""),
-            meal.get("source", ""),
-            "\n".join(ingredients)
-        ]
-
-    df = pd.DataFrame(
-        table,
-        index=[
-            "Class",
-            "Source",
-            "Ingredients"
-        ]
-    )
+    # ---------------- Display meals ----------------
 
     st.header("Selected Meals")
 
@@ -107,12 +86,12 @@ if "selected_meals" in st.session_state:
 
     all_ingredients = []
 
-    for col, meal in zip(cols, selected_meals):
+    for i, (col, meal) in enumerate(zip(cols, selected_meals)):
 
         ingredients = []
 
-        for i in range(1, 11):
-            ingredient = meal.get(f"i{i}", "")
+        for j in range(1, 11):
+            ingredient = meal.get(f"i{j}", "")
 
             if str(ingredient).strip():
                 ingredient = str(ingredient).strip()
@@ -120,18 +99,61 @@ if "selected_meals" in st.session_state:
                 all_ingredients.append(ingredient)
 
         with col:
+            locked = st.checkbox(
+                "🔒",
+                value=st.session_state["keep_flags"][i],
+                key=f"lock_{i}",
+                help="Lock this meal so it is not replaced"
+            )
 
-            st.markdown(f"### **{meal['meal']}**")
+            st.session_state["keep_flags"][i] = locked
 
-            st.markdown(f"**Class:** {meal.get('class','')}")
+            st.markdown(f"### **{meal.get('meal', 'Unknown meal')}**")
+            st.markdown(f"**Class:** {meal.get('class', '')}")
 
-            if meal.get("source",""):
-                st.markdown(f"**Source:** {meal['source']}")
+            if meal.get("source", ""):
+                st.markdown(f"**Source:** {meal.get('source', '')}")
 
             st.markdown("**Ingredients**")
 
             for ingredient in ingredients:
-                st.markdown(f"• **{ingredient}**")
+                st.markdown(f"• {ingredient}")
+
+    # ---------------- Replace unlocked meals ----------------
+
+    if st.button("🔁 Replace Unlocked Meals"):
+
+        kept_meals = []
+        new_keep_flags = []
+
+        for meal, keep in zip(selected_meals, st.session_state["keep_flags"]):
+            if keep:
+                kept_meals.append(meal)
+                new_keep_flags.append(True)
+
+        num_needed = len(selected_meals) - len(kept_meals)
+
+        kept_names = {meal.get("meal") for meal in kept_meals}
+        current_names = {meal.get("meal") for meal in selected_meals}
+
+        available_meals = [
+            meal for meal in clean_rows
+            if meal.get("meal") not in kept_names
+            and meal.get("meal") not in current_names
+        ]
+
+        if len(available_meals) < num_needed:
+            available_meals = [
+                meal for meal in clean_rows
+                if meal.get("meal") not in kept_names
+            ]
+
+        new_meals = random.sample(available_meals, num_needed)
+
+        st.session_state["selected_meals"] = kept_meals + new_meals
+        st.session_state["keep_flags"] = new_keep_flags + [False] * num_needed
+
+        st.rerun()
 
     # ---------------- Shopping list ----------------
 
@@ -154,7 +176,6 @@ if "selected_meals" in st.session_state:
         shopping_text,
         height=200,
     )
-
     # ---------------- Download HTML Shopping List ----------------
 
     now = datetime.now()
@@ -190,7 +211,7 @@ body {{
     max-width: 900px;
     margin: auto;
     padding: 20px;
-    font-size: 28px;
+    font-size: 30px;
     line-height: 1.6;
     background: #fafafa;
 }}
