@@ -167,6 +167,7 @@ if "selected_meals" in st.session_state:
 
     for item in shopping_lines:
         safe_item = html.escape(item)
+
         html_items += f"""
         <label class="item">
             <input type="checkbox">
@@ -175,64 +176,83 @@ if "selected_meals" in st.session_state:
         """
 
     html_content = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-    <meta charset="UTF-8">
-    <title>Shopping List</title>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <style>
+<title>Shopping List</title>
 
-    body {{
-        font-family: Arial;
-        max-width:700px;
-        margin:auto;
-        padding:20px;
-        font-size:22px;
-    }}
+<style>
+body {{
+    font-family: Arial, sans-serif;
+    max-width: 900px;
+    margin: auto;
+    padding: 20px;
+    font-size: 36px;
+    line-height: 1.6;
+    background: #fafafa;
+}}
 
-    h1 {{
-        font-size:34px;
-    }}
+h1 {{
+    font-size: 54px;
+    margin: 0 0 10px 0;
+}}
 
-    .date {{
-        color:#666;
-        margin-bottom:25px;
-    }}
+.date {{
+    color: #666;
+    font-size: 24px;
+    margin-bottom: 25px;
+}}
 
-    .item {{
-        display:block;
-        padding:10px 0;
-    }}
+.item {{
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 20px;
+    margin-bottom: 10px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+}}
 
-    input[type=checkbox] {{
-        width:24px;
-        height:24px;
-        margin-right:12px;
-    }}
+input[type="checkbox"] {{
+    width: 46px;
+    height: 46px;
+    flex-shrink: 0;
+}}
 
-    input[type=checkbox]:checked + span {{
-        text-decoration:line-through;
-        color:gray;
-    }}
+span {{
+    flex: 1;
+    font-size: 36px;
+    word-break: break-word;
+}}
 
-    </style>
+input[type="checkbox"]:checked + span {{
+    text-decoration: line-through;
+    color: #888;
+}}
 
-    </head>
+.item:has(input[type="checkbox"]:checked) {{
+    background: #dff5df;
+}}
+</style>
+</head>
 
-    <body>
+<body>
 
-    <h1>Shopping List</h1>
+<h1>Shopping List</h1>
 
-    <div class="date">
-    Created: {timestamp_display}
-    </div>
+<div class="date">
+Created: {timestamp_display}
+</div>
 
-    {html_items}
+{html_items}
 
-    </body>
-    </html>
-    """
+</body>
+</html>
+"""
 
     st.download_button(
         "🛒 Download Interactive Shopping List",
